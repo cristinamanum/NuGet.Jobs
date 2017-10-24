@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Data.Entity;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NuGet.Jobs.Validation.PackageSigning.Messages;
@@ -24,6 +22,7 @@ namespace Validation.PackageSigning.ValidateCertificate
         private readonly ICertificateStore _certificateStore;
         private readonly ICertificateValidationService _certificateValidationService;
         private readonly ILogger<CertificateValidationMessageHandler> _logger;
+
         private readonly int _maximumValidationFailures;
 
         public CertificateValidationMessageHandler(
@@ -101,25 +100,61 @@ namespace Validation.PackageSigning.ValidateCertificate
             var certificate = await _certificateStore.Load(validation.Certificate.Thumbprint);
             var result = await _certificateValidationService.Verify(certificate);
 
-            await _certificateValidationService.SaveResultAsync(validation, result);
+            // Save the result. This may alert if packages are invalidated.
+            if (!await _certificateValidationService.SaveResultAsync(validation, result))
+            {
+                _logger.LogWarning(
+                    "Failed to save certificate validation result " +
+                    "(certificate: {CertificateThumbprint} validation: {ValidationId}), " +
+                    "requeueing validation",
+                    validation.Certificate.Thumbprint,
+                    validation.ValidationId);
+
+                return true;
+            }
 
             return HasValidationCompleted(validation, result);
         }
 
         private bool HasValidationCompleted(CertificateValidation validation, CertificateVerificationResult result)
         {
-            if (result.Status != CertificateStatus.Unknown) return true;
-
-            if (validation.Certificate.ValidationFailures >= _maximumValidationFailures)
+            // The validation is complete if the certificate was determined to be "Good", "Invalid", or "Revoked".
+            if (result.Status == CertificateStatus.Good
+                || result.Status == CertificateStatus.Invalid
+                || result.Status == CertificateStatus.Revoked)
             {
-                // TODO: LogWarning!
                 return true;
             }
-            else
+            else if (result.Status == CertificateStatus.Unknown)
             {
-                // TODO: LogWarning!
-                return false;
+                // Certificates whose status failed to be determined will have an "Unknown"
+                // status. These certificates should be retried until "_maximumValidationFailures"
+                // is reached.
+                if (validation.Certificate.ValidationFailures >= _maximumValidationFailures)
+                {
+                    _logger.LogWarning(
+                        "Certificate {CertificateThumbprint} has reached maximum of {MaximumValidationFailures} failed validation attempts",
+                        validation.Certificate.Thumbprint,
+                        _maximumValidationFailures);
+
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Could not validate certificate {CertificateThumbprint}, {RetriesLeft} retries left",
+                        validation.Certificate.Thumbprint,
+                        _maximumValidationFailures - validation.Certificate.ValidationFailures);
+
+                    return false;
+                }
             }
+
+            _logger.LogError(
+                $"Unknown {nameof(CertificateStatus)} value: {{CertificateStatus}}, throwing to retry",
+                result.Status);
+
+            throw new InvalidOperationException($"Unknown {nameof(CertificateStatus)} value: {result.Status}");
         }
     }
 }

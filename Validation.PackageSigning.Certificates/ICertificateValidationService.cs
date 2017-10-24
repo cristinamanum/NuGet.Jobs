@@ -18,13 +18,13 @@ namespace Validation.PackageSigning.ValidateCertificate
         /// <summary>
         /// The status of the <see cref="X509Certificate2"/>.
         /// </summary>
-        public CertificateStatus Status { get; set; }
+        public CertificateStatus Status { get; }
 
         /// <summary>
         /// The time at which the <see cref="X509Certificate2"/> was revoked. Null unless
         /// <see cref="Status"/> is <see cref="CertificateStatus.Revoked"/>.
         /// </summary>
-        public DateTime? RevocationTime { get; set; }
+        public DateTime? RevocationTime { get; }
     }
 
     internal interface ICertificateValidationService
@@ -46,9 +46,10 @@ namespace Validation.PackageSigning.ValidateCertificate
 
         /// <summary>
         /// Update the requested <see cref="CertificateValidation"/> with the <see cref="CertificateVerificationResult"/>.
+        /// This may kick off alerts if packages are invalidated!
         /// </summary>
         /// <param name="validation">The validation that should be updated.</param>
-        /// <param name="result">The result of the certificate verification.</param>
-        Task SaveResultAsync(CertificateValidation validation, CertificateVerificationResult result);
+        /// <param name="result">Whether the save operation was successful.</param>
+        Task<bool> SaveResultAsync(CertificateValidation validation, CertificateVerificationResult result);
     }
 }

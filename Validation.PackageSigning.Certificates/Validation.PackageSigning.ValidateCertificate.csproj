@@ -58,7 +58,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CertificateValidationMessageHandler.cs" />
-    <Compile Include="ICertificateVerifier.cs" />
+    <Compile Include="CertificateValidationService.cs" />
+    <Compile Include="ICertificateValidationService.cs" />
     <Compile Include="Job.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

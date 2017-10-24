@@ -3,6 +3,8 @@
 
 using System;
 using System.Data.Entity;
+using System.Data.Entity.Infrastructure;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
@@ -43,9 +45,16 @@ namespace Validation.PackageSigning.ValidateCertificate
             throw new NotImplementedException();
         }
 
-        public async Task SaveResultAsync(CertificateValidation validation, CertificateVerificationResult result)
+        public async Task<bool> SaveResultAsync(CertificateValidation validation, CertificateVerificationResult result)
         {
-            // TODO: If certificate entity is revoked and result isn't revoked, LOG WARNING!
+            if (validation.Certificate.Status == CertificateStatus.Revoked && result.Status != CertificateStatus.Revoked)
+            {
+                _logger.LogWarning(
+                    "Updating previously revoked certificate {CertificateThumbprint} to status {NewStatus}",
+                    validation.Certificate.Thumbprint,
+                    result.Status);
+            }
+
             switch (result.Status)
             {
                 case CertificateStatus.Good:
@@ -72,7 +81,21 @@ namespace Validation.PackageSigning.ValidateCertificate
                     throw new InvalidOperationException($"Unknown {nameof(CertificateStatus)} value: {result.Status}");
             }
 
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+
+                return true;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                _logger.LogError(
+                    "Failed to update certificate {CertificateThumbprint} to status {NewStatus}",
+                    validation.Certificate.Thumbprint,
+                    result.Status);
+
+                return false;
+            }
         }
 
         private void SaveGoodCertificateStatusAsync(CertificateValidation validation)
