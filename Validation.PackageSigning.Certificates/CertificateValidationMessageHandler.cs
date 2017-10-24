@@ -6,8 +6,8 @@ using System.Data.Entity;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using NuGet.Jobs.Validation.PackageSigning;
 using NuGet.Jobs.Validation.PackageSigning.Messages;
+using NuGet.Jobs.Validation.PackageSigning.Storage;
 using NuGet.Services.ServiceBus;
 using NuGet.Services.Validation;
 
@@ -17,26 +17,23 @@ namespace Validation.PackageSigning.ValidateCertificate
     /// The handler for <see cref="CertificateValidationMessage"/>. Upon receiving a message,
     /// this will validate a <see cref="X509Certificate2"/> and perform online revocation checks.
     /// </summary>
-    public class CertificateValidationMessageHandler : IMessageHandler<CertificateValidationMessage>
+    internal sealed class CertificateValidationMessageHandler : IMessageHandler<CertificateValidationMessage>
     {
         private const int DefaultMaximumValidationFailures = 5;
 
-        private readonly IValidationEntitiesContext _context;
         private readonly ICertificateStore _certificateStore;
-        private readonly ICertificateVerifier _certificateVerifier;
+        private readonly ICertificateValidationService _certificateValidationService;
         private readonly ILogger<CertificateValidationMessageHandler> _logger;
         private readonly int _maximumValidationFailures;
 
         public CertificateValidationMessageHandler(
-            IValidationEntitiesContext context,
             ICertificateStore certificateStore,
-            ICertificateVerifier certificateVerifier,
+            ICertificateValidationService certificateValidationService,
             ILogger<CertificateValidationMessageHandler> logger,
             int maximumValidationFailures = DefaultMaximumValidationFailures)
         {
-            _context = context ?? throw new ArgumentNullException(nameof(context));
             _certificateStore = certificateStore ?? throw new ArgumentNullException(nameof(certificateStore));
-            _certificateVerifier = certificateVerifier ?? throw new ArgumentNullException(nameof(certificateVerifier));
+            _certificateValidationService = certificateValidationService ?? throw new ArgumentNullException(nameof(certificateValidationService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             _maximumValidationFailures = maximumValidationFailures;
@@ -49,12 +46,7 @@ namespace Validation.PackageSigning.ValidateCertificate
         /// <returns>Whether the validation completed. If false, the validation should be retried later.</returns>
         public async Task<bool> HandleAsync(CertificateValidationMessage message)
         {
-            // Find the certificate validation entity that matches this message.
-            var validation = await _context
-                                        .CertificateValidations
-                                        .Where(v => v.ValidationId == message.ValidationId && v.CertificateKey == message.CertificateKey)
-                                        .Include(v => v.Certificate)
-                                        .FirstOrDefaultAsync();
+            var validation = await _certificateValidationService.FindCertificateValidation(message);
 
             if (validation == null)
             {
@@ -107,134 +99,25 @@ namespace Validation.PackageSigning.ValidateCertificate
 
             // Download and verify the certificate.
             var certificate = await _certificateStore.Load(validation.Certificate.Thumbprint);
-            var result = await _certificateVerifier.Verify(certificate);
+            var result = await _certificateValidationService.Verify(certificate);
 
-            // TODO: If certificate entity is revoked and result isn't revoked, LOG WARNING!
+            await _certificateValidationService.SaveResultAsync(validation, result);
 
-            switch (result.Status)
-            {
-                case CertificateStatus.Good:
-                    return await HandleGoodCertificateStatusAsync(validation);
-
-                case CertificateStatus.Invalid:
-                    return await HandleInvalidCertificateStatusAsync(validation);
-
-                case CertificateStatus.Revoked:
-                    return await HandleRevokedCertificateStatusAsync(validation, result.RevocationTime.Value);
-
-                case CertificateStatus.Unknown:
-                    return await HandleUnknownCertificateStatusAsync(validation);
-
-                default:
-                    _logger.LogError(
-                        $"Unknown {nameof(CertificateStatus)} value: {{CertificateStatus}}, throwing to retry",
-                        result.Status);
-
-                    throw new InvalidOperationException($"Unknown {nameof(CertificateStatus)} value: {result.Status}");
-            }
+            return HasValidationCompleted(validation, result);
         }
 
-        private async Task<bool> HandleGoodCertificateStatusAsync(CertificateValidation validation)
+        private bool HasValidationCompleted(CertificateValidation validation, CertificateVerificationResult result)
         {
-            validation.Certificate.Status = CertificateStatus.Good;
-            validation.Certificate.StatusUpdateTime = null;
-            validation.Certificate.NextStatusUpdateTime = null;
-            validation.Certificate.LastVerificationTime = DateTime.UtcNow;
-            validation.Certificate.RevocationTime = null;
-            validation.Certificate.ValidationFailures = 0;
-
-            validation.Status = CertificateStatus.Good;
-
-            await _context.SaveChangesAsync();
-
-            return true;
-        }
-
-        private async Task<bool> HandleInvalidCertificateStatusAsync(CertificateValidation validation)
-        {
-            validation.Certificate.Status = CertificateStatus.Invalid;
-            validation.Certificate.StatusUpdateTime = null;
-            validation.Certificate.NextStatusUpdateTime = null;
-            validation.Certificate.LastVerificationTime = DateTime.UtcNow;
-            validation.Certificate.RevocationTime = null;
-            validation.Certificate.ValidationFailures = 0;
-
-            validation.Status = CertificateStatus.Invalid;
-
-            foreach (var signature in validation.Certificate.PackageSignatures)
-            {
-                if (signature.Status != PackageSignatureStatus.InGracePeriod)
-                {
-                    // TODO: ALERT - previously okay package is now invalid!
-                }
-
-                signature.Status = PackageSignatureStatus.Invalid;
-                signature.PackageSigningState.SigningStatus = PackageSigningStatus.Invalid;
-            }
-
-            await _context.SaveChangesAsync();
-
-            return true;
-        }
-
-        private async Task<bool> HandleRevokedCertificateStatusAsync(CertificateValidation validation, DateTime revocationTime)
-        {
-            validation.Certificate.Status = CertificateStatus.Revoked;
-            validation.Certificate.StatusUpdateTime = null;
-            validation.Certificate.NextStatusUpdateTime = null;
-            validation.Certificate.LastVerificationTime = DateTime.UtcNow;
-            validation.Certificate.RevocationTime = revocationTime.ToUniversalTime();
-            validation.Certificate.ValidationFailures = 0;
-
-            validation.Status = CertificateStatus.Revoked;
-
-            foreach (var signature in validation.Certificate.PackageSignatures)
-            {
-                // TODO: If this is the timestamp authority certificate, ALWAYS revoke the package!!
-                if (signature.TrustedTimestamps.Any(t => t.Value < revocationTime)) continue;
-
-                if (signature.Status != PackageSignatureStatus.InGracePeriod)
-                {
-                    // ALERT - previously okay package is now invalid!
-                }
-
-                signature.Status = PackageSignatureStatus.Invalid;
-                signature.PackageSigningState.SigningStatus = PackageSigningStatus.Invalid;
-            }
-
-            await _context.SaveChangesAsync();
-
-            return true;
-        }
-
-        private async Task<bool> HandleUnknownCertificateStatusAsync(CertificateValidation validation)
-        {
-            validation.Certificate.ValidationFailures++;
+            if (result.Status != CertificateStatus.Unknown) return true;
 
             if (validation.Certificate.ValidationFailures >= _maximumValidationFailures)
             {
-                // The maximum number of validation failures has been reached. The certificate's
-                // validation should not be retried as a NuGet Admin will need to investigate the issues.
-                // If the certificate is found to be invalid, the Admin will need to invalidate packages
-                // and timestamps that depend on this certificate!
-                validation.Certificate.Status = CertificateStatus.Invalid;
-                validation.Certificate.LastVerificationTime = DateTime.UtcNow;
-
-                validation.Status = CertificateStatus.Invalid;
-
-                // TODO: ALERT
-
-                // Save the current validation state and consume the service bus message.
-                await _context.SaveChangesAsync();
-
+                // TODO: LogWarning!
                 return true;
             }
             else
             {
-                // Save the current validation state but do not consume the service bus message so
-                // so that this certificate validation is tried again.
-                await _context.SaveChangesAsync();
-
+                // TODO: LogWarning!
                 return false;
             }
         }

@@ -10,7 +10,7 @@ using NuGet.Services.ServiceBus;
 
 namespace Validation.PackageSigning.ValidateCertificate
 {
-    public class Job : JobBase
+    internal class Job : JobBase
     {
         private ISubscriptionProcessor<CertificateValidationMessage> _processor;
 
