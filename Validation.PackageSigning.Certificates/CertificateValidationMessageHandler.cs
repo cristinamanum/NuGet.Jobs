@@ -214,11 +214,13 @@ namespace Validation.PackageSigning.ValidateCertificate
             if (validation.Certificate.ValidationFailures >= _maximumValidationFailures)
             {
                 // The maximum number of validation failures has been reached. The certificate's
-                // validation should not be retried as an engineer will need to investigate the issues.
-                validation.Certificate.Status = CertificateStatus.Unknown;
+                // validation should not be retried as a NuGet Admin will need to investigate the issues.
+                // If the certificate is found to be invalid, the Admin will need to invalidate packages
+                // and timestamps that depend on this certificate!
+                validation.Certificate.Status = CertificateStatus.Invalid;
                 validation.Certificate.LastVerificationTime = DateTime.UtcNow;
 
-                validation.Status = CertificateStatus.Unknown;
+                validation.Status = CertificateStatus.Invalid;
 
                 // TODO: ALERT
 
