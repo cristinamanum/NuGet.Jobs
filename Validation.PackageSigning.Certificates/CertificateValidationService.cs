@@ -17,17 +17,21 @@ namespace Validation.PackageSigning.ValidateCertificate
     internal class CertificateValidationService : ICertificateValidationService
     {
         private readonly IValidationEntitiesContext _context;
+        private readonly IAlertingService _alertingService;
         private readonly ILogger<CertificateValidationService> _logger;
         private readonly int _maximumValidationFailures;
 
         public CertificateValidationService(
             IValidationEntitiesContext context,
+            IAlertingService alertingService,
             ILogger<CertificateValidationService> logger,
             int maximumValidationFailures)
         {
-            _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _alertingService = alertingService ?? throw new ArgumentNullException(nameof(alertingService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
             _maximumValidationFailures = maximumValidationFailures;
-            _logger = logger;
         }
 
         public Task<CertificateValidation> FindCertificateValidation(CertificateValidationMessage message)
@@ -127,7 +131,12 @@ namespace Validation.PackageSigning.ValidateCertificate
             {
                 if (signature.Status != PackageSignatureStatus.InGracePeriod)
                 {
-                    // TODO: ALERT - previously okay package is now invalid!
+                    _logger.LogWarning(
+                        "Signature {SignatureKey} SHOULD be invalidated by NuGet Admin due to invalid certificate {CertificateThumbprint}. Firing alert...",
+                        signature.Key,
+                        validation.Certificate.Thumbprint);
+
+                    _alertingService.FirePackageSignatureShouldBeInvalidatedAlert(signature);
                 }
 
                 signature.Status = PackageSignatureStatus.Invalid;
@@ -156,7 +165,12 @@ namespace Validation.PackageSigning.ValidateCertificate
 
                 if (signature.Status != PackageSignatureStatus.InGracePeriod)
                 {
-                    // ALERT - previously okay package is now invalid!
+                    _logger.LogWarning(
+                        "Signature {SignatureKey} SHOULD be invalidated by NuGet Admin due to revoked certificate {CertificateThumbprint}. Firing alert...",
+                        signature.Key,
+                        validation.Certificate.Thumbprint);
+
+                    _alertingService.FirePackageSignatureShouldBeInvalidatedAlert(signature);
                 }
 
                 signature.Status = PackageSignatureStatus.Invalid;
@@ -179,7 +193,13 @@ namespace Validation.PackageSigning.ValidateCertificate
 
                 validation.Status = CertificateStatus.Invalid;
 
-                // TODO: ALERT
+                _logger.LogWarning(
+                    "Certificate {CertificateThumbprint} has reached maximum of {MaximumValidationFailures} failed validation attempts, " +
+                    "and requires manual investigation by NuGet Admin. Firing alert...",
+                    validation.Certificate.Thumbprint,
+                    _maximumValidationFailures);
+
+                _alertingService.FireUnableToValidateCertificateAlert(validation.Certificate);
             }
         }
 
