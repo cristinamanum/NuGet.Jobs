@@ -30,16 +30,15 @@ namespace Validation.PackageSigning.ValidateCertificate
 
         public override void Init(IDictionary<string, string> jobArgsDictionary)
         {
-            // TODO: Service bus
-            // TODO: Storage account for certificates
             // TODO: _processor
+            // TODO: _logger
         }
 
         public async override Task Run()
         {
             _processor.Start();
 
-            // Wait a day, and then recycle this process by shutting it down.
+            // Wait a day, and then shutdown this process so that it is recycled.
             await Task.Delay(TimeSpan.FromDays(1));
             await ShutdownAsync();
         }

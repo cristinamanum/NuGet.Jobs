@@ -69,11 +69,11 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\src\NuGet.Jobs.Common\NuGet.Jobs.Common.csproj">
+    <ProjectReference Include="..\NuGet.Jobs.Common\NuGet.Jobs.Common.csproj">
       <Project>{4b4b1efb-8f33-42e6-b79f-54e7f3293d31}</Project>
       <Name>NuGet.Jobs.Common</Name>
     </ProjectReference>
-    <ProjectReference Include="..\src\Validation.PackageSigning.Core\Validation.PackageSigning.Core.csproj">
+    <ProjectReference Include="..\Validation.PackageSigning.Core\Validation.PackageSigning.Core.csproj">
       <Project>{91c060da-736f-4da9-a57f-cb3ac0e6cb10}</Project>
       <Name>Validation.PackageSigning.Core</Name>
     </ProjectReference>
