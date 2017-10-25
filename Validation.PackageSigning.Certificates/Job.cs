@@ -3,7 +3,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using NuGet.Jobs;
 using NuGet.Jobs.Validation.PackageSigning.Messages;
 using NuGet.Services.ServiceBus;
@@ -12,7 +14,19 @@ namespace Validation.PackageSigning.ValidateCertificate
 {
     internal class Job : JobBase
     {
+        /// <summary>
+        /// The maximum amount of time that graceful shutdown can take before the job will
+        /// forcefully end itself.
+        /// </summary>
+        private static readonly TimeSpan MaxShutdownTime = TimeSpan.FromMinutes(1);
+
+        /// <summary>
+        /// How quickly the shutdown task should check its status.
+        /// </summary>
+        private static readonly TimeSpan ShutdownPollTime = TimeSpan.FromSeconds(1);
+
         private ISubscriptionProcessor<CertificateValidationMessage> _processor;
+        private ILogger<Job> _logger;
 
         public override void Init(IDictionary<string, string> jobArgsDictionary)
         {
@@ -25,14 +39,35 @@ namespace Validation.PackageSigning.ValidateCertificate
         {
             _processor.Start();
 
+            // Wait a day, and then recycle this process by shutting it down.
             await Task.Delay(TimeSpan.FromDays(1));
+            await ShutdownAsync();
+        }
 
+        private async Task ShutdownAsync()
+        {
             await _processor.StartShutdownAsync();
 
-            // TODO: don't poll forever.
+            // Wait until all certificate validations complete, or, the maximum shutdown time is reached.
+            var stopwatch = Stopwatch.StartNew();
+
             while (_processor.NumberOfMessagesInProgress > 0)
             {
-                await Task.Delay(TimeSpan.FromSeconds(1));
+                await Task.Delay(ShutdownPollTime);
+
+                _logger.LogInformation(
+                    "{NumberOfMessagesInProgress} certificate validations in progress after {TimeElapsed} seconds of graceful shutdown",
+                    _processor.NumberOfMessagesInProgress,
+                    stopwatch.Elapsed.Seconds);
+
+                if (stopwatch.Elapsed >= MaxShutdownTime)
+                {
+                    _logger.LogWarning(
+                        "Forcefully shutting down even though there are {NumberOfMessagesInProgress} certificate validations in progress",
+                        _processor.NumberOfMessagesInProgress);
+
+                    return;
+                }
             }
         }
     }
