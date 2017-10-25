@@ -8,8 +8,9 @@ using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.Linq.Expressions;
 using Moq;
+using NuGet.Services.Validation;
 
-namespace NuGet.Services.Validation
+namespace Validation.PackageSigning.Helpers
 {
     public static class ValidationContextHelpers
     {
