@@ -34,7 +34,7 @@ namespace Validation.PackageSigning.ValidateCertificate
         /// </summary>
         /// <param name="message">The message requesting a certificate validation.</param>
         /// <returns>The entity representing the certificate validation's state, or null if one could not be found.</returns>
-        Task<CertificateValidation> FindCertificateValidation(CertificateValidationMessage message);
+        Task<CertificateValidation> FindCertificateValidationAsync(CertificateValidationMessage message);
 
         /// <summary>
         /// Verify the certificate. Ensures the certificate is well-formed
@@ -42,7 +42,7 @@ namespace Validation.PackageSigning.ValidateCertificate
         /// </summary>
         /// <param name="certificate">The certificate to validate.</param>
         /// <returns>The result of the verification.</returns>
-        Task<CertificateVerificationResult> Verify(X509Certificate2 certificate);
+        Task<CertificateVerificationResult> VerifyAsync(X509Certificate2 certificate);
 
         /// <summary>
         /// Update the requested <see cref="CertificateValidation"/> with the <see cref="CertificateVerificationResult"/>.
@@ -50,6 +50,6 @@ namespace Validation.PackageSigning.ValidateCertificate
         /// </summary>
         /// <param name="validation">The validation that should be updated.</param>
         /// <param name="result">Whether the save operation was successful.</param>
-        Task<bool> SaveResultAsync(CertificateValidation validation, CertificateVerificationResult result);
+        Task<bool> TrySaveResultAsync(CertificateValidation validation, CertificateVerificationResult result);
     }
 }

@@ -34,7 +34,7 @@ namespace Validation.PackageSigning.ValidateCertificate
             _maximumValidationFailures = maximumValidationFailures;
         }
 
-        public Task<CertificateValidation> FindCertificateValidation(CertificateValidationMessage message)
+        public Task<CertificateValidation> FindCertificateValidationAsync(CertificateValidationMessage message)
         {
             return _context
                         .CertificateValidations
@@ -43,13 +43,13 @@ namespace Validation.PackageSigning.ValidateCertificate
                         .FirstOrDefaultAsync();
         }
 
-        public Task<CertificateVerificationResult> Verify(X509Certificate2 certificate)
+        public Task<CertificateVerificationResult> VerifyAsync(X509Certificate2 certificate)
         {
             // TODO: This will be implemented in a separate change!
             throw new NotImplementedException();
         }
 
-        public async Task<bool> SaveResultAsync(CertificateValidation validation, CertificateVerificationResult result)
+        public async Task<bool> TrySaveResultAsync(CertificateValidation validation, CertificateVerificationResult result)
         {
             if (validation.Certificate.Status == CertificateStatus.Revoked && result.Status != CertificateStatus.Revoked)
             {

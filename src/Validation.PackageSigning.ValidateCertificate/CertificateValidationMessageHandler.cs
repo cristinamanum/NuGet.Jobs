@@ -45,7 +45,7 @@ namespace Validation.PackageSigning.ValidateCertificate
         /// <returns>Whether the validation completed. If false, the validation should be retried later.</returns>
         public async Task<bool> HandleAsync(CertificateValidationMessage message)
         {
-            var validation = await _certificateValidationService.FindCertificateValidation(message);
+            var validation = await _certificateValidationService.FindCertificateValidationAsync(message);
 
             if (validation == null)
             {
@@ -98,10 +98,10 @@ namespace Validation.PackageSigning.ValidateCertificate
 
             // Download and verify the certificate.
             var certificate = await _certificateStore.Load(validation.Certificate.Thumbprint);
-            var result = await _certificateValidationService.Verify(certificate);
+            var result = await _certificateValidationService.VerifyAsync(certificate);
 
             // Save the result. This may alert if packages are invalidated.
-            if (!await _certificateValidationService.SaveResultAsync(validation, result))
+            if (!await _certificateValidationService.TrySaveResultAsync(validation, result))
             {
                 _logger.LogWarning(
                     "Failed to save certificate validation result " +
