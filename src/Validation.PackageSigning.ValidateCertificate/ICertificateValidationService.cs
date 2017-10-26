@@ -13,8 +13,33 @@ namespace Validation.PackageSigning.ValidateCertificate
     /// The result of a <see cref="X509Certificate2"/> verification by the
     /// <see cref="ICertificateVerifier"/>.
     /// </summary>
-    internal class CertificateVerificationResult
+    public class CertificateVerificationResult
     {
+        /// <summary>
+        /// Create a new non-revoked certificate verification result.
+        /// </summary>
+        /// <param name="status">The status of the <see cref="X509Certificate2"/></param>
+        /// <param name="revocationTime">The time of </param>
+        public CertificateVerificationResult(CertificateStatus status)
+        {
+            if (status == CertificateStatus.Revoked)
+            {
+                throw new ArgumentException("Provide a revocation date for a revoked certificate result.", nameof(status));
+            }
+
+            Status = status;
+        }
+
+        /// <summary>
+        /// Create a new revoked certificate verification result.
+        /// </summary>
+        /// <param name="revocationTime">The start of the certificate's invalidity period.</param>
+        public CertificateVerificationResult(DateTime revocationTime)
+        {
+            Status = CertificateStatus.Revoked;
+            RevocationTime = revocationTime;
+        }
+
         /// <summary>
         /// The status of the <see cref="X509Certificate2"/>.
         /// </summary>
@@ -27,7 +52,7 @@ namespace Validation.PackageSigning.ValidateCertificate
         public DateTime? RevocationTime { get; }
     }
 
-    internal interface ICertificateValidationService
+    public interface ICertificateValidationService
     {
         /// <summary>
         /// Find the <see cref="CertificateValidation"/> for the given <see cref="CertificateValidationMessage"/>.

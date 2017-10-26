@@ -12,5 +12,3 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyCopyright("Copyright © .NET Foundation 2017")]
 [assembly: ComVisible(false)]
 [assembly: Guid("a245e448-8ae0-452b-9338-8c0e0b637d72")]
-
-[assembly: InternalsVisibleTo("Validation.PackageSigning.ValidateCertificate.Tests")]

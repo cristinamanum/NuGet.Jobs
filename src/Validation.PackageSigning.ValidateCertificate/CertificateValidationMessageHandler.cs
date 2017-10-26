@@ -15,7 +15,7 @@ namespace Validation.PackageSigning.ValidateCertificate
     /// The handler for <see cref="CertificateValidationMessage"/>. Upon receiving a message,
     /// this will validate a <see cref="X509Certificate2"/> and perform online revocation checks.
     /// </summary>
-    internal sealed class CertificateValidationMessageHandler : IMessageHandler<CertificateValidationMessage>
+    public sealed class CertificateValidationMessageHandler : IMessageHandler<CertificateValidationMessage>
     {
         private const int DefaultMaximumValidationFailures = 5;
 

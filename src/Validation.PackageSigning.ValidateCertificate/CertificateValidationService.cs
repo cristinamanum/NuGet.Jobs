@@ -14,7 +14,7 @@ using NuGet.Services.Validation;
 
 namespace Validation.PackageSigning.ValidateCertificate
 {
-    internal class CertificateValidationService : ICertificateValidationService
+    public class CertificateValidationService : ICertificateValidationService
     {
         private readonly IValidationEntitiesContext _context;
         private readonly IAlertingService _alertingService;
@@ -104,6 +104,7 @@ namespace Validation.PackageSigning.ValidateCertificate
 
         private void SaveGoodCertificateStatus(CertificateValidation validation)
         {
+            // TODO: StatusUpdateTime and NextStatusUpdateTime!
             validation.Certificate.Status = CertificateStatus.Good;
             validation.Certificate.StatusUpdateTime = null;
             validation.Certificate.NextStatusUpdateTime = null;
@@ -116,6 +117,7 @@ namespace Validation.PackageSigning.ValidateCertificate
 
         private async Task SaveInvalidCertificateStatusAsync(CertificateValidation validation)
         {
+            // TODO: StatusUpdateTime and NextStatusUpdateTime!
             validation.Certificate.Status = CertificateStatus.Invalid;
             validation.Certificate.StatusUpdateTime = null;
             validation.Certificate.NextStatusUpdateTime = null;
@@ -244,8 +246,8 @@ namespace Validation.PackageSigning.ValidateCertificate
             if (signature.Certificate == certificate)
             {
                 // The signature was signed using the certificate. Ensure that none of the trusted timestamps indicate
-                // that the signature was created before the certificate's invalidity date begins.
-                if (signature.TrustedTimestamps.Any(t => t.Value <= certificate.RevocationTime))
+                // that the signature was created after the certificate's invalidity date begins.
+                if (signature.TrustedTimestamps.Any(t => certificate.RevocationTime <= t.Value))
                 {
                     return true;
                 }

@@ -5,7 +5,7 @@ using NuGet.Services.Validation;
 
 namespace Validation.PackageSigning.ValidateCertificate
 {
-    interface IAlertingService
+    public interface IAlertingService
     {
         /// <summary>
         /// Fire an alert that the signature should be manually invalidated.

@@ -19,17 +19,20 @@ namespace Validation.PackageSigning.Helpers
             Mock<IDbSet<ValidatorStatus>> validatorStatusesMock = null,
             Mock<IDbSet<PackageSigningState>> packageSigningStatesMock = null,
             Mock<IDbSet<PackageSignature>> packageSignaturesMock = null,
+            Mock<IDbSet<TrustedTimestamp>> trustedTimestampsMock = null,
             Mock<IDbSet<Certificate>> certificatesMock = null,
             Mock<IDbSet<CertificateValidation>> certificateValidationsMock = null,
             IEnumerable<ValidatorStatus> validatorStatuses = null,
             IEnumerable<PackageSigningState> packageSigningStates = null,
             IEnumerable<PackageSignature> packageSignatures = null,
+            IEnumerable<TrustedTimestamp> trustedTimestamps = null,
             IEnumerable<Certificate> certificates = null,
             IEnumerable<CertificateValidation> certificateValidations = null)
         {
             validationContext.SetupDbSet(c => c.ValidatorStatuses, validatorStatusesMock, validatorStatuses);
             validationContext.SetupDbSet(c => c.PackageSigningStates, packageSigningStatesMock, packageSigningStates);
             validationContext.SetupDbSet(c => c.PackageSignatures, packageSignaturesMock, packageSignatures);
+            validationContext.SetupDbSet(c => c.TrustedTimestamps, trustedTimestampsMock, trustedTimestamps);
             validationContext.SetupDbSet(c => c.Certificates, certificatesMock, certificates);
             validationContext.SetupDbSet(c => c.CertificateValidations, certificateValidationsMock, certificateValidations);
         }
