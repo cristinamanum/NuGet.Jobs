@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AlertingService.cs" />
     <Compile Include="CertificateValidationMessageHandler.cs" />
     <Compile Include="CertificateValidationService.cs" />
     <Compile Include="Config\ServiceBusConfiguration.cs" />
