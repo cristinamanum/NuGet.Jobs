@@ -110,7 +110,7 @@ namespace Validation.PackageSigning.ValidateCertificate
                     validation.Certificate.Thumbprint,
                     validation.ValidationId);
 
-                return true;
+                return false;
             }
 
             return HasValidationCompleted(validation, result);
