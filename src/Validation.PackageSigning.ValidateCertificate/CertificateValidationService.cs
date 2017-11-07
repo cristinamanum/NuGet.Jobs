@@ -163,7 +163,10 @@ namespace Validation.PackageSigning.ValidateCertificate
             {
                 // A revoked certificate does not necessarily invalidate a dependent signature. Skip signatures
                 // that should NOT be invalidated.
-                if (!RevokedCertificateInvalidatesSignature(validation.Certificate, signature)) continue;
+                if (!RevokedCertificateInvalidatesSignature(validation.Certificate, signature))
+                {
+                    continue;
+                }
 
                 if (signature.Status != PackageSignatureStatus.InGracePeriod)
                 {
@@ -227,9 +230,12 @@ namespace Validation.PackageSigning.ValidateCertificate
         /// <returns>Whether the signature depend on the given certificate.</returns>
         private bool SignatureDependsOnCertificate(PackageSignature signature, Certificate certificate)
         {
-            if (signature.Certificate == certificate) return true;
+            if (signature.Certificate.Thumbprint == certificate.Thumbprint)
+            {
+                return true;
+            }
 
-            return signature.TrustedTimestamps.Any(t => t.Certificate == certificate);
+            return signature.TrustedTimestamps.Any(t => t.Certificate.Thumbprint == certificate.Thumbprint);
         }
 
         /// <summary>
@@ -243,7 +249,7 @@ namespace Validation.PackageSigning.ValidateCertificate
             // The signature may depend on a certificate in one of two ways: either the signature itself was signed with
             // the certificate, or, the trusted timestamp authority used the certificate to sign its timestamp. Note that
             // it is "possible" that both the signature and the trusted timestamp depend on the certificate.
-            if (signature.Certificate == certificate)
+            if (signature.Certificate.Thumbprint == certificate.Thumbprint)
             {
                 // The signature was signed using the certificate. Ensure that none of the trusted timestamps indicate
                 // that the signature was created after the certificate's invalidity date begins.

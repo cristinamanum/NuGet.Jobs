@@ -46,6 +46,7 @@
     <Compile Include="AlertingService.cs" />
     <Compile Include="CertificateValidationMessageHandler.cs" />
     <Compile Include="CertificateValidationService.cs" />
+    <Compile Include="CertificateVerificationResult.cs" />
     <Compile Include="IAlertingService.cs" />
     <Compile Include="ICertificateValidationService.cs" />
     <Compile Include="Job.cs" />
