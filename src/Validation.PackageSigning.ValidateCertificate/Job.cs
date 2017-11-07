@@ -12,13 +12,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NuGet.Jobs;
+using NuGet.Jobs.Configuration;
 using NuGet.Jobs.Validation.PackageSigning.Messages;
 using NuGet.Jobs.Validation.PackageSigning.Storage;
 using NuGet.Services.Configuration;
 using NuGet.Services.KeyVault;
 using NuGet.Services.ServiceBus;
 using NuGet.Services.Validation;
-using Validation.PackageSigning.ValidateCertificate.Config;
 
 namespace Validation.PackageSigning.ValidateCertificate
 {
