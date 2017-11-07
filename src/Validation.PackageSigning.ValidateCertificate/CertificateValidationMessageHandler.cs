@@ -17,7 +17,7 @@ namespace Validation.PackageSigning.ValidateCertificate
     /// </summary>
     public sealed class CertificateValidationMessageHandler : IMessageHandler<CertificateValidationMessage>
     {
-        private const int DefaultMaximumValidationFailures = 5;
+        private const int DefaultMaximumValidationFailures = 10;
 
         private readonly ICertificateStore _certificateStore;
         private readonly ICertificateValidationService _certificateValidationService;
@@ -62,7 +62,7 @@ namespace Validation.PackageSigning.ValidateCertificate
                 // A certificate validation should be queued with a Status of null, and once the certificate validation
                 // completes, the Status should be updated to a non-null value. Hence, the Status here SHOULD be null.
                 // A non-null Status may indicate message duplication.
-                _logger.LogError(
+                _logger.LogWarning(
                     "Invalid certificate validation entity's status, dropping message (certificate: {CertificateThumbprint} validation: {ValidationId})",
                     validation.Certificate.Thumbprint,
                     validation.ValidationId);

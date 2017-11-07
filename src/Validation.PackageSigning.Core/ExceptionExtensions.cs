@@ -1,4 +1,7 @@
-﻿using System.Data.Entity.Infrastructure;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
+
+using System.Data.Entity.Infrastructure;
 using System.Data.SqlClient;
 using System.Linq;
 
@@ -6,6 +9,9 @@ namespace NuGet.Jobs.Validation.PackageSigning
 {
     public static class ExceptionExtensions
     {
+        /// <summary>
+        /// The SQL Server error code for when a unique contraint is violated.
+        /// </summary>
         private const int UniqueConstraintViolationErrorCode = 2627;
 
         /// <summary>
@@ -19,7 +25,7 @@ namespace NuGet.Jobs.Validation.PackageSigning
 
             if (sqlException != null)
             {
-                return sqlException.Errors.Cast<SqlError>().Any(error => error.Number == UniqueConstraintViolationErrorCode);
+                return sqlException.Errors.OfType<SqlError>().Any(error => error.Number == UniqueConstraintViolationErrorCode);
             }
 
             return false;
