@@ -136,8 +136,6 @@ namespace Validation.PackageSigning.ValidateCertificate
 
         private void ConfigureJobServices(IServiceCollection services, IConfigurationRoot configurationRoot)
         {
-            services.AddTransient<ISubscriptionProcessor<CertificateValidationMessage>, SubscriptionProcessor<CertificateValidationMessage>>();
-
             services.AddScoped<IValidationEntitiesContext>(p =>
             {
                 var config = p.GetRequiredService<IOptionsSnapshot<ValidationDbConfiguration>>().Value;
@@ -162,9 +160,23 @@ namespace Validation.PackageSigning.ValidateCertificate
 
         private static IServiceProvider CreateProvider(IServiceCollection services)
         {
+            const string validateCertificateBindingKey = "ValidateCertificateKey";
+            var certificateValidationMessageHandlerType = typeof(IMessageHandler<CertificateValidationMessage>);
+
             var containerBuilder = new ContainerBuilder();
 
             containerBuilder.Populate(services);
+
+            containerBuilder
+                .RegisterType<ScopedMessageHandler<CertificateValidationMessage>>()
+                .Keyed<IMessageHandler<CertificateValidationMessage>>(validateCertificateBindingKey);
+
+            containerBuilder
+                .RegisterType<SubscriptionProcessor<CertificateValidationMessage>>()
+                .WithParameter(
+                    (parameter, context) => parameter.ParameterType == certificateValidationMessageHandlerType,
+                    (parameter, context) => context.ResolveKeyed(validateCertificateBindingKey, certificateValidationMessageHandlerType))
+                .As<ISubscriptionProcessor<CertificateValidationMessage>>();
 
             return new AutofacServiceProvider(containerBuilder.Build());
         }

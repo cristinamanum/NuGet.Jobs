@@ -96,16 +96,16 @@
       <Version>1.1.2</Version>
     </PackageReference>
     <PackageReference Include="NuGet.Services.Configuration">
-      <Version>2.3.2-dev-16405</Version>
+      <Version>2.4.1-master-17060</Version>
     </PackageReference>
     <PackageReference Include="NuGet.Services.Contracts">
-      <Version>2.3.2-master-15927</Version>
+      <Version>2.4.1-master-17060</Version>
     </PackageReference>
     <PackageReference Include="NuGet.Services.KeyVault">
-      <Version>2.3.2-dev-16405</Version>
+      <Version>2.4.1-master-17060</Version>
     </PackageReference>
     <PackageReference Include="NuGet.Services.Validation">
-      <Version>2.3.2-master-15927</Version>
+      <Version>2.4.1-master-17060</Version>
     </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
