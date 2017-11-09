@@ -100,9 +100,9 @@ namespace Validation.PackageSigning.ValidateCertificate.Tests
                 var verificationResult = new CertificateVerificationResult(CertificateStatus.Invalid);
 
                 var signingState = new PackageSigningState { SigningStatus = PackageSigningStatus.Valid };
-                var signature1 = new PackageSignature { Status = PackageSignatureStatus.Valid };
-                var signature2 = new PackageSignature { Status = PackageSignatureStatus.Valid };
-                var signature3 = new PackageSignature { Status = PackageSignatureStatus.Valid };
+                var signature1 = new PackageSignature { Key = 123, Status = PackageSignatureStatus.Valid };
+                var signature2 = new PackageSignature { Key = 456, Status = PackageSignatureStatus.Valid };
+                var signature3 = new PackageSignature { Key = 789, Status = PackageSignatureStatus.Valid };
                 var timestamp = new TrustedTimestamp { Value = DateTime.UtcNow };
 
                 signingState.PackageSignatures = new [] { signature1, signature2, signature3};
@@ -120,11 +120,14 @@ namespace Validation.PackageSigning.ValidateCertificate.Tests
                 _certificate1.PackageSignatures = new[] { signature1 };
                 _certificate1.TrustedTimestamps = new[] { timestamp };
 
-                _context.Mock(packageSignatures: new[] { signature1, signature2, signature3 });
+                _context.Mock(
+                    packageSignatures: new[] { signature1, signature2, signature3 },
+                    trustedTimestamps: new[] { timestamp });
 
-                // Act & Assert - the first Unknown result shouldn't cause any issues.
+                // Act
                 var result = await _target.TrySaveResultAsync(_certificateValidation1, verificationResult);
 
+                //  Assert - the first Unknown result shouldn't cause any issues.
                 Assert.True(result);
 
                 Assert.Equal(CertificateStatus.Invalid, _certificateValidation1.Status);
@@ -156,10 +159,10 @@ namespace Validation.PackageSigning.ValidateCertificate.Tests
                 var verificationResult = new CertificateVerificationResult(revocationTime: revocationTime);
 
                 var signingState = new PackageSigningState { SigningStatus = PackageSigningStatus.Valid };
-                var signature1 = new PackageSignature { Status = PackageSignatureStatus.Valid };
-                var signature2 = new PackageSignature { Status = PackageSignatureStatus.Valid };
-                var signature3 = new PackageSignature { Status = PackageSignatureStatus.Valid };
-                var signature4 = new PackageSignature { Status = PackageSignatureStatus.Valid };
+                var signature1 = new PackageSignature { Key = 12, Status = PackageSignatureStatus.Valid };
+                var signature2 = new PackageSignature { Key = 23, Status = PackageSignatureStatus.Valid };
+                var signature3 = new PackageSignature { Key = 34, Status = PackageSignatureStatus.Valid };
+                var signature4 = new PackageSignature { Key = 45, Status = PackageSignatureStatus.Valid };
                 var timestamp1 = new TrustedTimestamp { Value = revocationTime.AddDays(-1) };
                 var timestamp2 = new TrustedTimestamp { Value = revocationTime.AddDays(1) };
                 var timestamp3 = new TrustedTimestamp { Value = revocationTime.AddDays(1) };

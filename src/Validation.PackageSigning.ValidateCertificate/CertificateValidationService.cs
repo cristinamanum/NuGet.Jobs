@@ -213,29 +213,31 @@ namespace Validation.PackageSigning.ValidateCertificate
         /// </summary>
         /// <param name="certificate">The certificate whose signatures should be found.</param>
         /// <returns>The signatures that depend on the given certificate.</returns>
-        private Task<List<PackageSignature>> FindSignatures(Certificate certificate)
+        private async Task<List<PackageSignature>> FindSignatures(Certificate certificate)
         {
-            return _context
-                        .PackageSignatures
-                        .Include(s => s.TrustedTimestamps)
-                        .Where(s => SignatureDependsOnCertificate(s, certificate))
-                        .ToListAsync();
-        }
+            // Get all signatures that depend on this certificate.
+            var result = await Task.WhenAll(
+                // A signature itself may be signed using the given certificate.
+                 _context
+                    .PackageSignatures
+                    .Where(s => s.Certificate.Thumbprint == certificate.Thumbprint)
+                    .Include(s => s.TrustedTimestamps)
+                    .Include(s => s.PackageSigningState)
+                    .ToListAsync(),
 
-        /// <summary>
-        /// Determines whether a signature depends on the given certificate.
-        /// </summary>
-        /// <param name="signature">The signature that may depend on the certificate.</param>
-        /// <param name="certificate">The certificate that the signature may depend on.</param>
-        /// <returns>Whether the signature depend on the given certificate.</returns>
-        private bool SignatureDependsOnCertificate(PackageSignature signature, Certificate certificate)
-        {
-            if (signature.Certificate.Thumbprint == certificate.Thumbprint)
-            {
-                return true;
-            }
+                 // The signature may depend on timstamps whose values were signed using the certificate.
+                _context
+                    .PackageSignatures
+                    .Where(s => s.TrustedTimestamps.Any(t => t.Certificate.Thumbprint == certificate.Thumbprint))
+                    .Include(s => s.TrustedTimestamps)
+                    .Include(s => s.PackageSigningState)
+                    .ToListAsync());
 
-            return signature.TrustedTimestamps.Any(t => t.Certificate.Thumbprint == certificate.Thumbprint);
+            // Merge all returned signatures together and remove all duplicated signatures.
+            return result[0].Union(result[1])
+                            .GroupBy(s => s.Key)
+                            .Select(g => g.First())
+                            .ToList();
         }
 
         /// <summary>
