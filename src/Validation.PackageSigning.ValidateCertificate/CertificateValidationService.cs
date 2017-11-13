@@ -93,7 +93,10 @@ namespace Validation.PackageSigning.ValidateCertificate
             }
             catch (DbUpdateConcurrencyException)
             {
-                _logger.LogError(
+                // A certificate may have multiple validations that happen concurrently. This may happen
+                // in the case of message duplication, or, if two validations were kicked off for the same
+                // certificate. Regardless, retry the validation so that the certificate's new state is loaded.
+                _logger.LogWarning(
                     "Failed to update certificate {CertificateThumbprint} to status {NewStatus}",
                     validation.Certificate.Thumbprint,
                     result.Status);
@@ -213,31 +216,18 @@ namespace Validation.PackageSigning.ValidateCertificate
         /// </summary>
         /// <param name="certificate">The certificate whose signatures should be found.</param>
         /// <returns>The signatures that depend on the given certificate.</returns>
-        private async Task<List<PackageSignature>> FindSignatures(Certificate certificate)
+        private Task<List<PackageSignature>> FindSignatures(Certificate certificate)
         {
-            // Get all signatures that depend on this certificate.
-            var result = await Task.WhenAll(
-                // A signature itself may be signed using the given certificate.
-                 _context
-                    .PackageSignatures
-                    .Where(s => s.Certificate.Thumbprint == certificate.Thumbprint)
-                    .Include(s => s.TrustedTimestamps)
-                    .Include(s => s.PackageSigningState)
-                    .ToListAsync(),
-
-                 // The signature may depend on timstamps whose values were signed using the certificate.
-                _context
-                    .PackageSignatures
-                    .Where(s => s.TrustedTimestamps.Any(t => t.Certificate.Thumbprint == certificate.Thumbprint))
-                    .Include(s => s.TrustedTimestamps)
-                    .Include(s => s.PackageSigningState)
-                    .ToListAsync());
-
-            // Merge all returned signatures together and remove all duplicated signatures.
-            return result[0].Union(result[1])
-                            .GroupBy(s => s.Key)
-                            .Select(g => g.First())
-                            .ToList();
+            // A signature may depend on a certificate in one of two ways: the signature itself may have been signed using
+            // the certificate, or, one of the signature's trusted timestamps may have been signed using the certificate.
+            return _context
+                        .PackageSignatures
+                        .Where(s =>
+                            s.Certificate.Thumbprint == certificate.Thumbprint ||
+                            s.TrustedTimestamps.Any(t => t.Certificate.Thumbprint == certificate.Thumbprint))
+                        .Include(s => s.TrustedTimestamps)
+                        .Include(s => s.PackageSigningState)
+                        .ToListAsync();
         }
 
         /// <summary>
