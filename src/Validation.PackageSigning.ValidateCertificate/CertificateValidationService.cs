@@ -91,13 +91,15 @@ namespace Validation.PackageSigning.ValidateCertificate
 
                 return true;
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException e)
             {
-                // A certificate may have multiple validations that happen concurrently. This may happen
-                // in the case of message duplication, or, if two validations were kicked off for the same
-                // certificate. Regardless, retry the validation so that the certificate's new state is validated.
+                // The update concurrency exception be triggered by either the Certificate record or one of the dependent
+                // PackageSignature records. Regardless, retry the validation so that the Certificate is validated with
+                // the new state.
                 _logger.LogWarning(
-                    "Failed to update certificate {CertificateThumbprint} to status {NewStatus}",
+                    0,
+                    e,
+                    "Failed to update certificate {CertificateThumbprint} to status {NewStatus} due to concurrency exception",
                     validation.Certificate.Thumbprint,
                     result.Status);
 
