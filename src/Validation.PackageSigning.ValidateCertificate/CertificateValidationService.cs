@@ -234,7 +234,10 @@ namespace Validation.PackageSigning.ValidateCertificate
         /// <param name="signature">The signature that may be invalidated.</param>
         /// <param name="revocationTime">The time at which the certificate was revoked.</param>
         /// <returns>Whether the signature should be invalidated.</returns>
-        private bool RevokedCertificateInvalidatesSignature(Certificate certificate, PackageSignature signature, DateTime revocationTime)
+        private bool RevokedCertificateInvalidatesSignature(
+            Certificate certificate,
+            PackageSignature signature,
+            DateTime revocationTime)
         {
             // The signature may depend on a certificate in one of two ways: either the signature itself was signed with
             // the certificate, or, the trusted timestamp authority used the certificate to sign its timestamp. Note that
