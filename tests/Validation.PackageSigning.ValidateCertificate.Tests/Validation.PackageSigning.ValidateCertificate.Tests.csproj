@@ -44,6 +44,7 @@
   <ItemGroup>
     <Compile Include="CertificateValidationMessageHandlerFacts.cs" />
     <Compile Include="CertificateValidationServiceFacts.cs" />
+    <Compile Include="CertificateVerifierFacts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

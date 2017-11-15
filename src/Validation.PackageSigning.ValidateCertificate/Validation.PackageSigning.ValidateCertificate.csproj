@@ -22,6 +22,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -47,9 +48,11 @@
     <Compile Include="CertificateValidationMessageHandler.cs" />
     <Compile Include="CertificateValidationService.cs" />
     <Compile Include="CertificateVerificationResult.cs" />
+    <Compile Include="CertificateVerifier.cs" />
     <Compile Include="IAlertingService.cs" />
     <Compile Include="ICertificateValidationService.cs" />
     <Compile Include="Job.cs" />
+    <Compile Include="Primitives.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
