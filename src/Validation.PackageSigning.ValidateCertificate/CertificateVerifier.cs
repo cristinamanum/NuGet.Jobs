@@ -13,10 +13,10 @@ namespace Validation.PackageSigning.ValidateCertificate
     {
         public const string CodeSigningCertificateOid = "1.3.6.1.5.5.7.3.3";
 
+        // NOTE: Removed NotTimeValid
         public const X509ChainStatusFlags InvalidCertificateFlags =
             X509ChainStatusFlags.UntrustedRoot |
             X509ChainStatusFlags.RevocationStatusUnknown |
-            X509ChainStatusFlags.NotTimeValid |
             X509ChainStatusFlags.NotSignatureValid |
             X509ChainStatusFlags.NotValidForUsage |
             X509ChainStatusFlags.Cyclic |
@@ -70,14 +70,14 @@ namespace Validation.PackageSigning.ValidateCertificate
             chain = new X509Chain();
 
             // Ensure the signing certificate is a code-signing certificate.
-            chain.ChainPolicy.ApplicationPolicy.Add(new Oid(CodeSigningCertificateOid));
+            //chain.ChainPolicy.ApplicationPolicy.Add(new Oid(CodeSigningCertificateOid));
 
             // Allow the chain to use whatever additional extra certificates were provided.
             chain.ChainPolicy.ExtraStore.AddRange(extraCertificates);
 
             chain.ChainPolicy.RevocationMode = X509RevocationMode.Online;
             chain.ChainPolicy.RevocationFlag = X509RevocationFlag.ExcludeRoot;
-            chain.ChainPolicy.VerificationFlags = X509VerificationFlags.NoFlag;
+            chain.ChainPolicy.VerificationFlags = X509VerificationFlags.IgnoreNotTimeValid;
 
             return chain.Build(certificate);
         }
@@ -147,7 +147,7 @@ namespace Validation.PackageSigning.ValidateCertificate
         /// </summary>
         /// <param name="pChainElement">The certificate chain element whose revocation time should be fetched.</param>
         /// <returns>The time that the certificate was revoked, or null if one could not be determined.</returns>
-        public unsafe DateTime? RevocationDate(CERT_CHAIN_ELEMENT* pChainElement)
+        private unsafe DateTime? RevocationDate(CERT_CHAIN_ELEMENT* pChainElement)
         {
             // Check that the certificate's revocation info is available. It may not be available
             // if the chain was built without revocation checking, or, if the certificate has not
